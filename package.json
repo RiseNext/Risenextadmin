@@ -1,0 +1,18 @@
+{
+  "name": "risenext-enterprise-admin",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "dev": "concurrently -n api,web -c magenta,cyan \"npm --workspace server run dev\" \"npm --workspace web run dev\"",
+    "build": "npm --workspace server run build && npm --workspace web run build",
+    "start": "concurrently -n api,web \"npm --workspace server start\" \"npm --workspace web start\"",
+    "seed": "npm --workspace server run seed",
+    "lint": "npm --workspace web run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": { "node": ">=20" }
+}

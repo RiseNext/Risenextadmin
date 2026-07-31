@@ -1,0 +1,646 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── auth & access ─────────────────────────
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+  HR
+  MARKETING
+  SALES
+  EMPLOYEE
+  VIEWER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  role          Role      @default(VIEWER)
+  permissions   String[]  @default([])
+  avatarUrl     String?
+  phone         String?
+  active        Boolean   @default(true)
+  twoFactor     Boolean   @default(false)
+  lastLoginAt   DateTime?
+  failedLogins  Int       @default(0)
+  lockedUntil   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      Session[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  tasksOwned    Task[]     @relation("taskOwner")
+  employee      Employee?
+  mediaUploads  Media[]
+  posts         Post[]
+  comments      Comment[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String   @unique
+  userAgent    String?
+  ip           String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  entityId  String?
+  before    Json?
+  after     Json?
+  ip        String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([resource, createdAt])
+}
+
+// ───────────────────────── website CMS ─────────────────────────
+enum PublishState {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Hero {
+  id         String       @id @default(cuid())
+  eyebrow    String?
+  headline   String
+  subline    String?
+  body       String?
+  ctaLabel   String?
+  ctaHref    String?
+  altCta     String?
+  altHref    String?
+  mediaId    String?
+  media      Media?       @relation(fields: [mediaId], references: [id])
+  theme      String       @default("cream")
+  order      Int          @default(0)
+  state      PublishState @default(DRAFT)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model Service {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  summary     String?
+  description String?
+  icon        String?
+  features    String[]     @default([])
+  priceFrom   Int?
+  order       Int          @default(0)
+  state       PublishState @default(DRAFT)
+  coverId     String?
+  cover       Media?       @relation(fields: [coverId], references: [id])
+  projects    Project[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  clientId    String?
+  client      Client?      @relation(fields: [clientId], references: [id])
+  serviceId   String?
+  service     Service?     @relation(fields: [serviceId], references: [id])
+  summary     String?
+  description String?
+  results     String[]     @default([])
+  year        Int?
+  featured    Boolean      @default(false)
+  order       Int          @default(0)
+  state       PublishState @default(DRAFT)
+  coverId     String?
+  cover       Media?       @relation("projectCover", fields: [coverId], references: [id])
+  gallery     Media[]      @relation("projectGallery")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Client {
+  id         String       @id @default(cuid())
+  name       String
+  industry   String?
+  website    String?
+  logoId     String?
+  logo       Media?       @relation(fields: [logoId], references: [id])
+  testimonial String?
+  author     String?
+  authorRole String?
+  order      Int          @default(0)
+  state      PublishState @default(DRAFT)
+  projects   Project[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model TeamMember {
+  id        String       @id @default(cuid())
+  name      String
+  role      String
+  bio       String?
+  email     String?
+  linkedin  String?
+  photoId   String?
+  photo     Media?       @relation(fields: [photoId], references: [id])
+  order     Int          @default(0)
+  state     PublishState @default(DRAFT)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model GalleryAlbum {
+  id        String       @id @default(cuid())
+  title     String
+  slug      String       @unique
+  caption   String?
+  kind      String       @default("photo") // photo | video | reel | podcast
+  items     Media[]      @relation("albumItems")
+  order     Int          @default(0)
+  state     PublishState @default(DRAFT)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Page {
+  id        String       @id @default(cuid())
+  title     String
+  slug      String       @unique
+  blocks    Json         @default("[]")
+  state     PublishState @default(DRAFT)
+  seo       Seo?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Seo {
+  id            String  @id @default(cuid())
+  path          String  @unique
+  title         String
+  description   String?
+  keywords      String[] @default([])
+  ogImageId     String?
+  ogImage       Media?  @relation(fields: [ogImageId], references: [id])
+  canonical     String?
+  robots        String  @default("index, follow")
+  schemaJson    Json?
+  pageId        String? @unique
+  page          Page?   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime @updatedAt
+}
+
+model SiteSetting {
+  id        String   @id @default("singleton")
+  brandName String   @default("Rise Next")
+  tagline   String   @default("Where growth becomes reality.")
+  logoId    String?
+  logo      Media?   @relation(fields: [logoId], references: [id])
+  email     String   @default("hello@risenext.in")
+  phone     String   @default("+91 00000 00000")
+  address   String   @default("Hyderabad, Telangana, India")
+  socials   Json     @default("{}")
+  theme     Json     @default("{}")
+  maintenance Boolean @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+// ───────────────────────── blog ─────────────────────────
+model Category {
+  id     String @id @default(cuid())
+  name   String @unique
+  slug   String @unique
+  posts  Post[]
+}
+
+model Tag {
+  id    String @id @default(cuid())
+  name  String @unique
+  slug  String @unique
+  posts Post[] @relation("postTags")
+}
+
+model Post {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  excerpt     String?
+  content     String       @default("")
+  readMinutes Int          @default(3)
+  authorId    String?
+  author      User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  categoryId  String?
+  category    Category?    @relation(fields: [categoryId], references: [id])
+  tags        Tag[]        @relation("postTags")
+  coverId     String?
+  cover       Media?       @relation(fields: [coverId], references: [id])
+  state       PublishState @default(DRAFT)
+  publishedAt DateTime?
+  views       Int          @default(0)
+  comments    Comment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName String?
+  body      String
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ───────────────────────── media ─────────────────────────
+enum MediaKind {
+  IMAGE
+  VIDEO
+  PDF
+  DOC
+  SHEET
+  SLIDE
+  SVG
+  ZIP
+  OTHER
+}
+
+model Media {
+  id         String    @id @default(cuid())
+  kind       MediaKind @default(OTHER)
+  url        String
+  publicId   String?
+  filename   String
+  mime       String
+  bytes      Int
+  width      Int?
+  height     Int?
+  duration   Float?
+  alt        String?
+  folderId   String?
+  folder     Folder?   @relation(fields: [folderId], references: [id])
+  uploadedById String?
+  uploadedBy User?     @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt  DateTime  @default(now())
+
+  heroes         Hero[]
+  services       Service[]
+  projectCovers  Project[]      @relation("projectCover")
+  projectGallery Project[]      @relation("projectGallery")
+  clients        Client[]
+  team           TeamMember[]
+  albums         GalleryAlbum[] @relation("albumItems")
+  seo            Seo[]
+  posts          Post[]
+  settings       SiteSetting[]
+  applications   Application[]
+
+  @@index([kind, createdAt])
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?
+  parent    Folder?  @relation("tree", fields: [parentId], references: [id])
+  children  Folder[] @relation("tree")
+  media     Media[]
+  createdAt DateTime @default(now())
+}
+
+// ───────────────────────── CRM ─────────────────────────
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  WON
+  LOST
+}
+
+model Lead {
+  id        String     @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  source    String     @default("website")
+  service   String?
+  budget    Int?
+  message   String?
+  status    LeadStatus @default(NEW)
+  score     Int        @default(0)
+  ownerId   String?
+  activities Activity[]
+  deals     Deal[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model Deal {
+  id        String   @id @default(cuid())
+  title     String
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  value     Int      @default(0)
+  stage     String   @default("discovery")
+  closeDate DateTime?
+  ownerId   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  leadId    String?
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String   // call | email | meeting | whatsapp | note
+  note      String?
+  userId    String?
+  dueAt     DateTime?
+  doneAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String?
+  message   String
+  page      String?
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ───────────────────────── HRMS ─────────────────────────
+model Department {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  head      String?
+  employees Employee[]
+}
+
+model Employee {
+  id           String    @id @default(cuid())
+  code         String    @unique
+  userId       String?   @unique
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  firstName    String
+  lastName     String
+  email        String    @unique
+  phone        String?
+  designation  String
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  employment   String    @default("FULL_TIME")
+  joinedAt     DateTime  @default(now())
+  exitedAt     DateTime?
+  ctc          Int       @default(0)
+  bankAccount  String?
+  pan          String?
+  address      String?
+  photoUrl     String?
+  status       String    @default("ACTIVE")
+  attendance   Attendance[]
+  leaves       LeaveRequest[]
+  payslips     Payslip[]
+  tasks        Task[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Attendance {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  status     String   @default("PRESENT") // PRESENT | ABSENT | HALF_DAY | WFH | LEAVE
+  minutes    Int      @default(0)
+  note       String?
+
+  @@unique([employeeId, date])
+}
+
+model LeaveType {
+  id       String @id @default(cuid())
+  name     String @unique
+  quotaDays Int   @default(12)
+  paid     Boolean @default(true)
+  requests LeaveRequest[]
+}
+
+model LeaveRequest {
+  id         String    @id @default(cuid())
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  typeId     String
+  type       LeaveType @relation(fields: [typeId], references: [id])
+  from       DateTime
+  to         DateTime
+  days       Float     @default(1)
+  reason     String?
+  status     String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  approverId String?
+  createdAt  DateTime  @default(now())
+}
+
+model Payslip {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month      Int
+  year       Int
+  basic      Int      @default(0)
+  hra        Int      @default(0)
+  allowances Int      @default(0)
+  deductions Int      @default(0)
+  tds        Int      @default(0)
+  netPay     Int      @default(0)
+  status     String   @default("DRAFT") // DRAFT | APPROVED | PAID
+  pdfUrl     String?
+  createdAt  DateTime @default(now())
+
+  @@unique([employeeId, month, year])
+}
+
+// ───────────────────────── recruitment & careers ─────────────────────────
+model JobOpening {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  location    String       @default("Hyderabad")
+  type        String       @default("FULL_TIME")
+  experience  String?
+  description String       @default("")
+  skills      String[]     @default([])
+  salaryRange String?
+  openings    Int          @default(1)
+  state       PublishState @default(DRAFT)
+  applications Application[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Application {
+  id        String     @id @default(cuid())
+  jobId     String
+  job       JobOpening @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  phone     String?
+  resumeId  String?
+  resume    Media?     @relation(fields: [resumeId], references: [id])
+  portfolio String?
+  coverNote String?
+  stage     String     @default("APPLIED") // APPLIED | SCREEN | INTERVIEW | OFFER | HIRED | REJECTED
+  rating    Int        @default(0)
+  createdAt DateTime   @default(now())
+}
+
+// ───────────────────────── work management ─────────────────────────
+model Task {
+  id         String    @id @default(cuid())
+  title      String
+  detail     String?
+  status     String    @default("TODO") // TODO | DOING | REVIEW | DONE
+  priority   String    @default("MEDIUM")
+  dueAt      DateTime?
+  ownerId    String?
+  owner      User?     @relation("taskOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  tags       String[]  @default([])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model CalendarEvent {
+  id        String   @id @default(cuid())
+  title     String
+  detail    String?
+  start     DateTime
+  end       DateTime
+  allDay    Boolean  @default(false)
+  kind      String   @default("meeting")
+  attendees String[] @default([])
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?
+  kind      String   @default("info")
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ───────────────────────── marketing ─────────────────────────
+model AdCampaign {
+  id          String   @id @default(cuid())
+  platform    String   // META | GOOGLE
+  externalId  String?
+  name        String
+  objective   String?
+  status      String   @default("ACTIVE")
+  dailyBudget Int      @default(0)
+  spend       Int      @default(0)
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  leads       Int      @default(0)
+  conversions Int      @default(0)
+  revenue     Int      @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  syncedAt    DateTime?
+  metrics     AdMetric[]
+
+  @@index([platform, status])
+}
+
+model AdMetric {
+  id         String     @id @default(cuid())
+  campaignId String
+  campaign   AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  date       DateTime
+  spend      Int        @default(0)
+  impressions Int       @default(0)
+  clicks     Int        @default(0)
+  leads      Int        @default(0)
+
+  @@unique([campaignId, date])
+}
+
+model AnalyticsDaily {
+  id          String   @id @default(cuid())
+  date        DateTime @unique
+  sessions    Int      @default(0)
+  users       Int      @default(0)
+  pageviews   Int      @default(0)
+  bounceRate  Float    @default(0)
+  avgDuration Float    @default(0)
+  topPages    Json     @default("[]")
+  channels    Json     @default("{}")
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  subject   String
+  html      String
+  variables String[] @default([])
+  updatedAt DateTime @updatedAt
+}
+
+model MessageLog {
+  id        String   @id @default(cuid())
+  channel   String   // EMAIL | WHATSAPP
+  to        String
+  subject   String?
+  body      String?
+  status    String   @default("QUEUED")
+  error     String?
+  createdAt DateTime @default(now())
+}
+
+// ───────────────────────── ops ─────────────────────────
+model Backup {
+  id        String   @id @default(cuid())
+  filename  String
+  bytes     Int      @default(0)
+  driver    String   @default("local")
+  note      String?
+  createdBy String?
+  createdAt DateTime @default(now())
+}

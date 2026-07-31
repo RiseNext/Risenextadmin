@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'Inter Tight', system-ui, sans-serif;
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --surface: #f5f2e8;
+  --surface-raised: #fbfaf5;
+  --border: #e3ddcc;
+  --text: #14110c;
+  --muted: #6b6353;
+}
+
+.dark {
+  --surface: #0e0c09;
+  --surface-raised: #171410;
+  --border: #2b261e;
+  --text: #f5f2e8;
+  --muted: #a49a86;
+}
+
+* { border-color: var(--border); }
+
+html, body { height: 100%; }
+
+body {
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+
+@layer components {
+  .surface { background: var(--surface-raised); }
+  .muted { color: var(--muted); }
+
+  .card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary { @apply btn bg-ink text-cream hover:bg-ember dark:bg-cream dark:text-ink dark:hover:bg-ember dark:hover:text-cream; }
+  .btn-ghost { @apply btn border border-[var(--border)] hover:bg-cream-200/60 dark:hover:bg-night-700; }
+  .btn-ember { @apply btn bg-ember text-cream hover:bg-ember-600; }
+
+  .field {
+    @apply w-full rounded-xl border bg-transparent px-3.5 py-2.5 text-sm outline-none
+           placeholder:text-[var(--muted)] focus:border-ember focus:ring-2 focus:ring-ember/20;
+    border-color: var(--border);
+  }
+
+  .label { @apply mb-1.5 block text-xs font-medium uppercase tracking-[.14em] muted; }
+
+  .chip { @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs; }
+
+  .table-row { @apply border-b last:border-0; }
+
+  .skeleton { @apply relative overflow-hidden rounded-md bg-cream-200/70 dark:bg-night-700; }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/40 to-transparent;
+  }
+
+  .glass {
+    background: linear-gradient(145deg, rgba(255,255,255,.14), rgba(255,255,255,.04));
+    backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(255,255,255,.16);
+  }
+
+  .grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: .28;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+::selection { background: #c2571f33; }
+
+@media print {
+  .no-print { display: none !important; }
+}
