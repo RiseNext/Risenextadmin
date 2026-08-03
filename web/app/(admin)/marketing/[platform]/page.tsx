@@ -19,7 +19,7 @@ type Campaign = {
   dailyBudget: number; spend: number; clicks: number; impressions: number; leads: number; revenue: number;
 };
 
-export function AdsDashboard({ platform }: { platform: 'META' | 'GOOGLE' }) {
+ function AdsDashboard({ platform }: { platform: 'META' | 'GOOGLE' }) {
   const { data, loading, reload } = useFetch<Overview>(`/ads/${platform}/overview`);
   const campaigns = useFetch<Campaign[]>(`/ads/${platform}/campaigns`);
   const [syncing, setSyncing] = useState(false);
