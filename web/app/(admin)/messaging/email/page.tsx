@@ -9,7 +9,7 @@ import { Badge, Card, SectionHeader, Select, Spinner, toneForValue } from '@/com
 type Log = { id: string; channel: string; to: string; subject?: string | null; status: string; error?: string | null; createdAt: string };
 type Template = { id: string; name: string; subject: string; variables: string[] };
 
-export function MessagingConsole({ channel }: { channel: 'EMAIL' | 'WHATSAPP' }) {
+  function MessagingConsole({ channel }: { channel: 'EMAIL' | 'WHATSAPP' }) {
   const logs = useFetch<Log[]>(`/messaging/logs?channel=${channel}`);
   const templates = useFetch<{ data: Template[] }>('/messaging/templates?perPage=100');
   const [to, setTo] = useState('');
