@@ -51,5 +51,6 @@ image compression (sharp), background queue, replace, delete. Storage: Cloudinar
 (fallback: local `server/uploads`).
 
 ## Deploy
-- API → Render via `render.yaml` (Docker) — set env vars from `.env.example`
-- Web → Vercel via `vercel.json` — set `NEXT_PUBLIC_API_URL`
+- API → Railway using `server/railway.json` and `server/Dockerfile`. Set the service root directory to `/server` and config file path to `/server/railway.json`. Set `DATABASE_URL` to the existing Neon connection string and `WEB_ORIGIN=https://admin.risenext.in` in Railway variables. Keep Neon credentials out of source control.
+- Web/admin → Vercel using `vercel.json`. Set `NEXT_PUBLIC_API_URL` to the deployed Railway API URL at build time, then assign `admin.risenext.in` to the Vercel project.
+- Keep `risenext.in` and `www.risenext.in` pointed at the company website. The website integration is a later step; when ready, add its origin to Railway's `WEB_ORIGIN` and connect it to the public CMS API.

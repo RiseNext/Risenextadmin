@@ -6,8 +6,6 @@ dotenv.config({
   path: path.resolve(__dirname, '../.env'),
 });
 
-console.log("DATABASE_URL =", process.env.DATABASE_URL);
-
 function num(v: string | undefined, d: number) {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;

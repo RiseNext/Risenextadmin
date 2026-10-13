@@ -13,4 +13,4 @@ RUN npx prisma generate && npx tsc -p tsconfig.json
 ENV NODE_ENV=production
 ENV PORT=4000
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/src/index.js"]
+CMD ["sh", "-c", "npx prisma db push && node dist/src/index.js"]
